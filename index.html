@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAG Simulator</title>
+<style>
+
+body{
+font-family:Inter,system-ui,Arial;
+margin:0;
+background:#0f172a;
+color:#e2e8f0;
+}
+
+header{
+padding:20px;
+text-align:center;
+font-size:26px;
+font-weight:600;
+background:#020617;
+border-bottom:1px solid #1e293b;
+}
+
+.container{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+padding:20px;
+}
+
+.card{
+background:#020617;
+border:1px solid #1e293b;
+border-radius:12px;
+padding:16px;
+}
+
+.card h3{
+margin-top:0;
+color:#38bdf8;
+}
+
+textarea,input{
+width:100%;
+background:#0f172a;
+border:1px solid #1e293b;
+border-radius:8px;
+padding:10px;
+color:white;
+}
+
+button{
+margin-top:10px;
+background:#0ea5e9;
+border:none;
+padding:10px 16px;
+border-radius:8px;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#0284c7;
+}
+
+.step{
+margin-top:10px;
+padding:10px;
+background:#0f172a;
+border-radius:6px;
+font-size:14px;
+}
+
+.chunk{
+background:#1e293b;
+padding:6px;
+border-radius:4px;
+margin:4px 0;
+}
+
+.highlight{
+background:#14532d;
+}
+
+.vector{
+font-family:monospace;
+font-size:12px;
+color:#a5f3fc;
+}
+
+.answer{
+background:#1e3a8a;
+padding:10px;
+border-radius:8px;
+margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+RAG Simulator (Visual Learning Tool)
+</header>
+
+<div class="container">
+
+<div class="card">
+<h3>1. Knowledge Base</h3>
+
+<textarea id="kb" rows="8">
+RAG stands for Retrieval Augmented Generation.
+It improves LLM answers by retrieving external knowledge.
+Vector databases store embeddings of text chunks.
+Semantic search finds similar meaning instead of exact words.
+</textarea>
+
+<button onclick="chunkDocs()">Create Chunks</button>
+
+<div id="chunks"></div>
+</div>
+
+
+<div class="card">
+<h3>2. Embeddings + Vector DB</h3>
+
+<button onclick="embedChunks()">Generate Embeddings</button>
+
+<div id="vectors"></div>
+</div>
+
+
+<div class="card">
+<h3>3. User Query</h3>
+
+<input id="query" placeholder="Ask something about RAG">
+
+<button onclick="embedQuery()">Embed Query</button>
+
+<div id="queryVector"></div>
+
+</div>
+
+
+<div class="card">
+<h3>4. Semantic Search</h3>
+
+<button onclick="search()">Find Top Chunks</button>
+
+<div id="results"></div>
+
+</div>
+
+
+<div class="card">
+<h3>5. Context Construction</h3>
+
+<div id="context"></div>
+</div>
+
+
+<div class="card">
+<h3>6. Simulated LLM Answer</h3>
+
+<button onclick="generate()">Generate Answer</button>
+
+<div id="answer"></div>
+
+</div>
+
+</div>
+
+<script>
+
+let chunks=[]
+let vectors=[]
+let queryVec=[]
+let topChunks=[]
+
+function chunkDocs(){
+
+let text=document.getElementById("kb").value
+
+chunks=text.split(".").map(t=>t.trim()).filter(t=>t)
+
+let html=""
+
+chunks.forEach((c,i)=>{
+
+html+=`<div class="chunk">Chunk ${i+1}: ${c}</div>`
+
+})
+
+document.getElementById("chunks").innerHTML=html
+
+}
+
+function randomVector(){
+
+let arr=[]
+
+for(let i=0;i<5;i++){
+
+arr.push(Math.random().toFixed(2))
+
+}
+
+return arr
+
+}
+
+function embedChunks(){
+
+vectors=chunks.map(()=>randomVector())
+
+let html=""
+
+vectors.forEach((v,i)=>{
+
+html+=`<div class="vector">Chunk ${i+1}: [${v.join(", ")}]</div>`
+
+})
+
+document.getElementById("vectors").innerHTML=html
+
+}
+
+function embedQuery(){
+
+queryVec=randomVector()
+
+document.getElementById("queryVector").innerHTML=
+`<div class="vector">Query Vector: [${queryVec.join(", ")}]</div>`
+
+}
+
+function similarity(a,b){
+
+let score=0
+
+for(let i=0;i<a.length;i++){
+
+score+=1-Math.abs(a[i]-b[i])
+
+}
+
+return score
+
+}
+
+function search(){
+
+let scores=vectors.map((v,i)=>{
+
+return {index:i,score:similarity(v,queryVec)}
+
+})
+
+scores.sort((a,b)=>b.score-a.score)
+
+topChunks=scores.slice(0,2)
+
+let html=""
+
+topChunks.forEach(r=>{
+
+html+=`<div class="chunk highlight">
+Chunk ${r.index+1} (score ${r.score.toFixed(2)}): ${chunks[r.index]}
+</div>`
+
+})
+
+document.getElementById("results").innerHTML=html
+
+let ctx=""
+
+topChunks.forEach(r=>ctx+=chunks[r.index]+". ")
+
+document.getElementById("context").innerHTML=
+`<div class="step">${ctx}</div>`
+
+}
+
+function generate(){
+
+let ctx=document.getElementById("context").innerText
+let q=document.getElementById("query").value
+
+let ans=`Using retrieved knowledge: ${ctx}
+The answer to "${q}" is generated based on the retrieved context.`
+
+document.getElementById("answer").innerHTML=
+`<div class="answer">${ans}</div>`
+
+}
+
+</script>
+
+</body>
+</html>
